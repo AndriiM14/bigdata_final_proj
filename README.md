@@ -50,6 +50,24 @@ Example:
 businesslg-am
 ```
 
+### Where to put your jobs
+##### Write separate functions in jobs.py and import them and use in main.py
+jobs.py
+```
+def some_job(d: Dataset) -> None:
+    ...
+```
+main.py
+```
+...
+from jobs import some_job
+
+def main():
+    datast = load_dataset(...)
+    ...
+    some_job(dataset)
+```
+
 ### Code style:
  - snake_case
  - double quotes
