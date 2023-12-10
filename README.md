@@ -42,6 +42,14 @@ def main():
     save_csv(dataset.tratings, f"{OUTPUT_PATH}/tratings")
 ```
 
+### Branch naming convention
+```
+businesslg-<your initials>
+
+Example:
+businesslg-am
+```
+
 ### Code style:
  - snake_case
  - double quotes
