@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 from pyspark.sql import SparkSession
 from dataset import load_dataset, preprocess
-from settings import DATA_PATH
+from settings import DATA_PATH, OUTPUT_PATH
+from utils import save_csv
 
 
 def main():
@@ -10,8 +11,12 @@ def main():
     dataset = load_dataset(DATA_PATH, spark)
     dataset = preprocess(dataset)
 
-    dataset.nbasics.printSchema()
-    dataset.nbasics.show()
+    dataset.tratings.printSchema()
+    dataset.tratings.show()
+    save_csv(dataset.tratings, f"{OUTPUT_PATH}/tratings")
+
+
+    input("Press any button to end the program")
 
 
 
