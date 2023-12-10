@@ -2,7 +2,9 @@ from pyspark.sql import DataFrame as df, SparkSession
 from pyspark.sql.functions import split
 from pyspark.sql.types import ArrayType, StringType
 from dataclasses import dataclass
+from typing import Callable
 import schemas as s
+from utils import camel_to_snake
 
 
 @dataclass
@@ -63,6 +65,13 @@ def split_columns(dataframe: df, columns: list[str], separator: str = ",") -> df
     return dataframe
 
 
+def format_columns(dataframe: df, formater: Callable[[str], str]) -> df:
+    for column in  dataframe.columns:
+        dataframe = dataframe.withColumnRenamed(column, formater(column))
+
+    return dataframe
+
+
 def split_transform(dataset: Dataset) -> Dataset:
     dataset.nbasics = split_columns(dataset.nbasics, ["primaryProfession", "knownForTitles"])
     dataset.takas = split_columns(dataset.takas, ["types", "attributes"])
@@ -72,8 +81,19 @@ def split_transform(dataset: Dataset) -> Dataset:
     return dataset
 
 
+def column_names_transform(dataset: Dataset) -> Dataset:
+    dataset.nbasics = format_columns(dataset.nbasics, camel_to_snake)
+    dataset.takas = format_columns(dataset.takas, camel_to_snake)
+    dataset.tbasics = format_columns(dataset.tbasics, camel_to_snake)
+    dataset.tcrew = format_columns(dataset.tcrew, camel_to_snake)
+    dataset.tepisode = format_columns(dataset.tepisode, camel_to_snake)
+    dataset.tprincipals = format_columns(dataset.tprincipals, camel_to_snake)
+    dataset.tratings = format_columns(dataset.tratings, camel_to_snake)
+
+
 def preprocess(dataset: Dataset) -> Dataset:
     dataset = split_transform(dataset)
+    datast = column_names_transform(dataset)
 
     return dataset
 
