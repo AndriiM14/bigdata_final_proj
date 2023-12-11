@@ -23,6 +23,7 @@ def main():
     # Andrii Shchur jobs
     # j.best_popular_directors(dataset).show()
     # j.best_rated_languages(dataset).show()
+    j.versatile_directors(dataset).show()
 
     input("Press any button to end the program")
 

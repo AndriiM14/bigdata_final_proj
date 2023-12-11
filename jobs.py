@@ -40,9 +40,9 @@ def most_popular_actors(d: Dataset) -> df:
 
     actors_only = name_basics_exploded.filter(f.col(c.primary_profession) == "actor")
 
-    titles_count = actors_only.groupBy(
-        c.nconst, c.primary_name, c.primary_profession
-    ).agg(f.count("*").alias(c.title_count))
+    titles_count = actors_only.groupBy(c.nconst, c.primary_name, c.primary_profession).agg(
+        f.count("*").alias(c.title_count)
+    )
 
     titles_count_ordered = titles_count.orderBy(f.col(c.title_count).desc())
 
@@ -58,14 +58,10 @@ def worst_ranked_movie_genres(d: Dataset) -> df:
     """
 
     joined_df = d.tbasics.join(d.tratings, c.tconst)
-    exploded_df = joined_df.select(
-        c.tconst, f.explode(c.genres).alias(c.genre), c.average_rating
-    )
+    exploded_df = joined_df.select(c.tconst, f.explode(c.genres).alias(c.genre), c.average_rating)
     filtered_df = exploded_df.filter(f.col(c.genre) != r"\N")
 
-    average_ratings_by_genre = filtered_df.groupBy(c.genre).agg(
-        f.avg(c.average_rating).alias(c.average_rating)
-    )
+    average_ratings_by_genre = filtered_df.groupBy(c.genre).agg(f.avg(c.average_rating).alias(c.average_rating))
 
     sorted_df = average_ratings_by_genre.orderBy(c.average_rating)
 
@@ -96,13 +92,11 @@ def multilingual_titles(d: Dataset) -> df:
     Question: Titles with the largest number of translations
     """
 
-    multilingual_titles_count = d.takas.groupBy(c.title_id, c.title).agg(
-        f.count(c.language).alias(c.language_count)
-    )
+    multilingual_titles_count = d.takas.groupBy(c.title_id, c.title).agg(f.count(c.language).alias(c.language_count))
 
-    multilingual_titles_count_top_10 = multilingual_titles_count.orderBy(
-        c.language_count, ascending=False
-    ).limit(MULTILINGUAL_TITLES_LIMIT)
+    multilingual_titles_count_top_10 = multilingual_titles_count.orderBy(c.language_count, ascending=False).limit(
+        MULTILINGUAL_TITLES_LIMIT
+    )
 
     return multilingual_titles_count_top_10
 
@@ -113,21 +107,15 @@ def top_collaborations(d: Dataset) -> df:
     Question: What are the top 5 director-writer collaborations with the highest average ratings for their movies?
     """
 
-    exploded_directors_df = d.tcrew.select(
-        c.tconst, c.writers, f.explode(c.directors).alias(c.director)
-    )
-    exploded_writers_df = exploded_directors_df.select(
-        c.tconst, c.director, f.explode(c.writers).alias(c.writer)
-    )
+    exploded_directors_df = d.tcrew.select(c.tconst, c.writers, f.explode(c.directors).alias(c.director))
+    exploded_writers_df = exploded_directors_df.select(c.tconst, c.director, f.explode(c.writers).alias(c.writer))
     filter_non_null_directors = exploded_writers_df.filter(f.col(c.director) != r"\N")
     filter_non_null_writers = filter_non_null_directors.filter(f.col(c.writer) != r"\N")
 
     crew_ratings_joined = filter_non_null_writers.join(d.tratings, c.tconst)
 
     collaboration_names_df = (
-        crew_ratings_joined.join(
-            d.nbasics, f.col(c.director) == f.col(c.nconst), "left"
-        )
+        crew_ratings_joined.join(d.nbasics, f.col(c.director) == f.col(c.nconst), "left")
         .withColumnRenamed(c.primary_name, c.director_name)
         .drop(c.nconst)
         .join(d.nbasics, f.col(c.writer) == f.col(c.nconst), "left")
@@ -139,9 +127,7 @@ def top_collaborations(d: Dataset) -> df:
         c.director_name, c.writer_name, c.tconst, c.director, c.writer
     ).agg(f.avg(c.average_rating).alias(c.average_rating))
 
-    return collaboration_ratings.orderBy(f.col(c.average_rating).desc()).limit(
-        TOP_COLOBORATIONS_LIMIT
-    )
+    return collaboration_ratings.orderBy(f.col(c.average_rating).desc()).limit(TOP_COLOBORATIONS_LIMIT)
 
 
 def the_youngest_actors(d: Dataset) -> df:
@@ -170,13 +156,9 @@ def best_popular_directors(d: Dataset) -> df:
     Question: Who are the best active popular directors?
     """
 
-    joined_df = d.tcrew.select(c.tconst, f.explode(c.directors).alias("director")).join(
-        d.tratings, c.tconst
-    )
+    joined_df = d.tcrew.select(c.tconst, f.explode(c.directors).alias(c.director)).join(d.tratings, c.tconst)
     name_basics_df = d.nbasics.select(c.nconst, c.primary_name)
-    directors = joined_df.join(
-        name_basics_df, f.col("director") == f.col(c.nconst), "left"
-    )
+    directors = joined_df.join(name_basics_df, f.col(c.director) == f.col(c.nconst), "left")
     popular_directors = (
         directors.select(c.average_rating, c.num_votes, c.primary_name)
         .groupBy(c.primary_name)
@@ -207,4 +189,31 @@ def best_rated_languages(d: Dataset) -> df:
         .agg(f.avg(c.average_rating).alias(c.average_rating), f.count("*").alias("titles_count"))
         .filter(f.col("titles_count") > ACTIVE_LANGUAGE_MIN_TITLE_COUNT)
         .orderBy(c.average_rating, ascending=False)
+    )
+
+
+def versatile_directors(d: Dataset) -> df:
+    """
+    The most versatile directors
+    Question: What directors have worked on the highest amount of genres?
+    """
+    _genres_set_col = "genres_set"
+    _genres_set_size_col = "genres_set_size"
+
+    directors_genres_df = (
+        d.tcrew.select(c.tconst, f.explode(c.directors).alias(c.director))
+        .filter(f.col(c.director) != r"\N")
+        .join(d.tbasics.select(c.tconst, f.explode(c.genres).alias(c.genre)), c.tconst)
+        .groupBy(c.director)
+        .agg(f.collect_set(c.genre).alias(_genres_set_col))
+    )
+
+    # FYI: Alan Smithee is an official pseudonym used by film directors who wish to disown a project
+    return (
+        directors_genres_df.join(
+            d.nbasics.select(c.nconst, c.primary_name),
+            (f.col(c.director) == f.col(c.nconst)) & (f.col(c.primary_name) != "Alan Smithee"),
+        )
+        .select(c.primary_name, _genres_set_col, f.size(_genres_set_col).alias(_genres_set_size_col))
+        .orderBy(f.col(_genres_set_size_col), ascending=False)
     )
