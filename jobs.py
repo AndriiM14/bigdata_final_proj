@@ -1,6 +1,7 @@
 from dataset import Dataset
 from pyspark.sql import DataFrame as df
 from pyspark.sql.window import Window
+from pyspark.sql.types import IntegerType
 import columns as c
 import pyspark.sql.functions as f
 
@@ -15,6 +16,7 @@ IS_ADULT_TRUE = 1
 ADULT_MIN_YEAR = 2000
 ADULT_MAX_YEAR = 2023
 BUSY_ACTORS_LIMIT = 20
+LONGEST_TV_LIMIT = 20
 NONE_VALUE = r"\N"
 
 
@@ -281,5 +283,19 @@ def busy_actors(d: Dataset) -> df:
                 .groupby(c.primary_name).count().withColumnRenamed("count", c.titles_count)
                 .orderBy(c.titles_count, ascending=False)
                 .limit(BUSY_ACTORS_LIMIT))
+
+
+def longest_tv_series(d: Dataset) -> df:
+    """
+    Longest TV series:
+    Question: find top 20 longest running tv series.
+    """
+
+    return (d.tbasics
+            .filter(f.col(c.end_year) != NONE_VALUE)
+            .withColumn(c.end_year, f.col(c.end_year).cast(IntegerType()))
+            .withColumn(c.years_running, f.col(c.end_year) - f.col(c.start_year))
+            .orderBy(c.years_running, ascending=False)
+            .limit(LONGEST_TV_LIMIT))
 
 

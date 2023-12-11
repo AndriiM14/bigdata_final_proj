@@ -44,6 +44,7 @@ titles_avg_rating = "titles_avg_rating"
 genre_avg_rating = "genre_avg_rating"
 year_avg_rating = "year_avg_rating"
 year_count = "year_count"
+years_running = "years_running"
 
 # Titles crew dataframe columns
 

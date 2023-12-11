@@ -37,9 +37,13 @@ def main():
     #directors_popular_genre.show()
     #save_csv(directors_popular_genre, f"{OUTPUT_PATH}/directors_popular_genre")
 
-    busy_actors = j.busy_actors(dataset)
-    busy_actors.show()
-    save_csv(busy_actors, f"{OUTPUT_PATH}/busy_actors")
+    #busy_actors = j.busy_actors(dataset)
+    #busy_actors.show()
+    #save_csv(busy_actors, f"{OUTPUT_PATH}/busy_actors")
+
+    longest_tv = j.longest_tv_series(dataset)
+    longest_tv.show()
+    save_csv(longest_tv, f"{OUTPUT_PATH}/longest_tv")
 
     input("Press any button to end the program")
 

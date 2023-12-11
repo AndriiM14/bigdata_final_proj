@@ -41,7 +41,7 @@ title_basics_schema = StructType(
         StructField("originalTitle", StringType(), True),
         StructField("isAdult", IntegerType(), True),
         StructField("startYear", IntegerType(), True),
-        StructField("endYear", IntegerType(), True),
+        StructField("endYear", StringType(), True),
         StructField("runtimeMinutes", IntegerType(), True),
         StructField("genres", StringType(), True),
     ]
