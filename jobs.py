@@ -8,7 +8,7 @@ POPULAR_ACTORS_LIMIT = 10
 WORST_GENRES_LIMIT = 5
 HIGHEST_EPISODES_SERIES_LIMIT = 1
 MULTILINGUAL_TITLES_LIMIT = 10
-TOP_COLOBORATIONS_LIMIT = 10
+TOP_COLLABORATIONS_LIMIT = 10
 
 POPULAR_DIRECTOR_MIN_VOTES = 50000
 ACTIVE_DIRECTOR_MIN_TITLE_COUNT = 5
@@ -70,7 +70,7 @@ def worst_ranked_movie_genres(d: Dataset) -> df:
     return worst_5_genres
 
 
-def episodic_tv_series_statictics(d: Dataset) -> df:
+def episodic_tv_series_statistics(d: Dataset) -> df:
     """
     Episodic TV Series Statistics:
     Question: For episodic TV series, which TV series has the highest number of episodes?
@@ -127,7 +127,7 @@ def top_collaborations(d: Dataset) -> df:
         c.director_name, c.writer_name, c.tconst, c.director, c.writer
     ).agg(f.avg(c.average_rating).alias(c.average_rating))
 
-    return collaboration_ratings.orderBy(f.col(c.average_rating).desc()).limit(TOP_COLOBORATIONS_LIMIT)
+    return collaboration_ratings.orderBy(f.col(c.average_rating).desc()).limit(TOP_COLLABORATIONS_LIMIT)
 
 
 def the_youngest_actors(d: Dataset) -> df:
@@ -178,7 +178,7 @@ def best_popular_directors(d: Dataset) -> df:
 def best_rated_languages(d: Dataset) -> df:
     """
     Best rated languages
-    Question: In which languages were the best movies filmed on average?
+    Question: In which languages were the best rated movies filmed on average?
     """
 
     return (
@@ -195,8 +195,9 @@ def best_rated_languages(d: Dataset) -> df:
 def versatile_directors(d: Dataset) -> df:
     """
     The most versatile directors
-    Question: What directors have worked on the highest amount of genres?
+    Question: What directors have worked on the highest number of genres?
     """
+
     _genres_set_col = "genres_set"
     _genres_set_size_col = "genres_set_size"
 
@@ -216,4 +217,22 @@ def versatile_directors(d: Dataset) -> df:
         )
         .select(c.primary_name, _genres_set_col, f.size(_genres_set_col).alias(_genres_set_size_col))
         .orderBy(f.col(_genres_set_size_col), ascending=False)
+    )
+
+
+def best_decades(d: Dataset) -> df:
+    """
+    Best rated decades:
+    Question: In which decades were the best rated movies filmed on average?
+    """
+
+    _decade_col = "decade"
+
+    return (
+        d.tbasics.filter(f.col(c.start_year).isNotNull())
+        .withColumn(_decade_col, f.expr(f"floor({c.start_year}/10)*10"))
+        .join(d.tratings.select(c.tconst, c.average_rating), c.tconst)
+        .groupBy(_decade_col)
+        .agg(f.avg(c.average_rating).alias(c.average_rating))
+        .orderBy(c.average_rating, ascending=False)
     )
