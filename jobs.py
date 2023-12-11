@@ -236,3 +236,28 @@ def best_decades(d: Dataset) -> df:
         .agg(f.avg(c.average_rating).alias(c.average_rating))
         .orderBy(c.average_rating, ascending=False)
     )
+
+
+def directors_with_long_movies(d: Dataset) -> df:
+    """
+    Directors that film the longest movies:
+    Question: Which directors filmed the longest movies?
+    """
+
+    _avg_minutes_col = "avg_minutes"
+
+    return (
+        d.tcrew.select(c.tconst, f.explode(c.directors).alias(c.director))
+        .filter(f.col(c.director) != r"\N")
+        .join(
+            d.tbasics.select(c.tconst, c.runtime_minutes).filter(
+                (f.col(c.runtime_minutes).isNotNull()) & (f.col(c.title_type) == "movie")
+            ),
+            c.tconst,
+        )
+        .join(d.nbasics.select(c.nconst, c.primary_name), f.col(c.director) == f.col(c.nconst))
+        .select(c.primary_name, c.runtime_minutes)
+        .groupBy(c.primary_name)
+        .agg(f.avg(c.runtime_minutes).alias(_avg_minutes_col))
+        .orderBy(_avg_minutes_col, ascending=False)
+    )
