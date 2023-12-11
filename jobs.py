@@ -14,6 +14,7 @@ ORIGINAL_TITLE_TRUE = 1
 IS_ADULT_TRUE = 1
 ADULT_MIN_YEAR = 2000
 ADULT_MAX_YEAR = 2023
+BUSY_ACTORS_LIMIT = 20
 NONE_VALUE = r"\N"
 
 
@@ -217,4 +218,68 @@ def adult_movies_stats(d: Dataset) -> df:
                 .groupby(c.start_year)
                 .agg(f.count(c.tconst).alias(c.year_count), f.mean(c.average_rating).alias(c.year_avg_rating))
                 .orderBy(c.start_year, ascending=False))
+
+
+def directors_genres(d: Dataset) -> df:
+    """
+    Directors and genres:
+    Question: find the most successful genre for a director.
+    """
+
+    selection = Window.partitionBy(c.director, c.genre)
+
+    basics_ratings_df = d.tbasics.join(d.tratings, c.tconst)
+    directors_titles = basics_ratings_df.join(d.tcrew, c.tconst)
+    directors_titles = (directors_titles.select(
+        f.explode(c.directors).alias(c.director),
+        c.average_rating,
+        c.genres
+    ))
+
+
+    directors_titles = (directors_titles.select(
+        c.director,
+        f.explode(c.genres).alias(c.genre),
+        c.average_rating
+    ))
+
+    directors_titles = (directors_titles
+                        .withColumn(c.genre_avg_rating, f.avg(c.average_rating).over(selection)))
+
+    directors_titles = directors_titles.filter(f.col(c.director) != NONE_VALUE)
+
+    directors_max_genres = (directors_titles
+                            .groupby(c.director)
+                            .agg(f.max(c.average_rating).alias(c.genre_max_rating))
+                            .withColumnRenamed(c.director, c.nconst))
+
+    directors_max_genres = (directors_max_genres
+            .join(
+                directors_titles,
+                (directors_max_genres[c.nconst] == directors_titles[c.director]) & (directors_max_genres[c.genre_max_rating] == directors_titles[c.genre_avg_rating])))
+    directors_max_genres = (directors_max_genres
+                            .join(d.nbasics, c.nconst)
+                            .select(c.director, c.primary_name, c.genre, c.genre_max_rating))
+
+    return directors_max_genres
+
+
+def busy_actors(d: Dataset) -> df:
+    """
+    Bussy actors:
+    Question: Find top 20 actors that played in the biggest amount of movies in the dataset
+    """
+
+
+    actors_df = (d.nbasics
+        .select(
+            c.primary_name, f.explode(c.primary_profession).alias(c.profession), c.nconst)
+        .filter(f.col(c.profession) == "actor"))
+    actors_df = actors_df.join(d.tprincipals, c.nconst)
+
+    return (actors_df
+                .groupby(c.primary_name).count().withColumnRenamed("count", c.titles_count)
+                .orderBy(c.titles_count, ascending=False)
+                .limit(BUSY_ACTORS_LIMIT))
+
 

@@ -51,6 +51,7 @@ directors = "directors"
 writers = "writers"
 director = "director"
 writer = "writer"
+genre_max_rating = "genre_max_rating"
 
 # Titles episode dataframe columns
 

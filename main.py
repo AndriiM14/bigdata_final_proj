@@ -7,7 +7,7 @@ import jobs as j
 
 
 def main():
-    spark = SparkSession.builder.appName("IMDBAnalysis").getOrCreate()
+    spark = SparkSession.builder.config("spark.driver.memory", "15g").appName("IMDBAnalysis").getOrCreate()
 
     dataset = load_dataset(DATA_PATH, spark)
     dataset = preprocess(dataset)
@@ -29,9 +29,17 @@ def main():
     #genres_avg_rating.show()
     #save_csv(genres_avg_rating, f"{OUTPUT_PATH}/genres_avg_rating")
 
-    adult_movies_per_year = j.adult_movies_stats(dataset)
-    adult_movies_per_year.show()
-    save_csv(adult_movies_per_year, f"{OUTPUT_PATH}/adult_movies_stats")
+    #adult_movies_per_year = j.adult_movies_stats(dataset)
+    #adult_movies_per_year.show()
+    #save_csv(adult_movies_per_year, f"{OUTPUT_PATH}/adult_movies_stats")
+
+    #directors_popular_genre = j.directors_genres(dataset)
+    #directors_popular_genre.show()
+    #save_csv(directors_popular_genre, f"{OUTPUT_PATH}/directors_popular_genre")
+
+    busy_actors = j.busy_actors(dataset)
+    busy_actors.show()
+    save_csv(busy_actors, f"{OUTPUT_PATH}/busy_actors")
 
     input("Press any button to end the program")
 
