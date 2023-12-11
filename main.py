@@ -2,6 +2,7 @@
 from pyspark.sql import SparkSession
 from dataset import load_dataset, preprocess
 from settings import DATA_PATH, OUTPUT_PATH
+from utils import save_csv
 import jobs as j
 
 
@@ -18,6 +19,15 @@ def main():
     #j.multilingual_titles(dataset).show()
     #j.top_collaborations(dataset).show()
     #j.the_youngest_actors(dataset).show()
+
+    # Andrii's (Marusyk) jobs
+    #original_titles_languages_df = j.original_title_languages(dataset)
+    #original_titles_languages_df.show()
+    #save_csv(original_titles_languages_df, f"{OUTPUT_PATH}/original_titles_languages")
+
+    genres_avg_rating = j.genres_avg_rating(dataset)
+    genres_avg_rating.show()
+    save_csv(genres_avg_rating, f"{OUTPUT_PATH}/genres_avg_rating")
 
     input("Press any button to end the program")
 

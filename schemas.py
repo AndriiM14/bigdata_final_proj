@@ -29,7 +29,7 @@ title_akas_schema = StructType(
         StructField("language", StringType(), True),
         StructField("types", StringType(), True),
         StructField("attributes", StringType(), True),
-        StructField("isOriginalTitle", BooleanType(), True),
+        StructField("isOriginalTitle", IntegerType(), True),
     ]
 )
 

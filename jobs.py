@@ -1,11 +1,8 @@
 from dataset import Dataset
 from pyspark.sql import DataFrame as df
+from pyspark.sql.window import Window
 import columns as c
 import pyspark.sql.functions as f
-
-
-def example_job(d: Dataset) -> None:
-    d.tratings.groupBy(c.average_rating).count().show()
 
 
 POPULAR_ACTORS_LIMIT = 10
@@ -13,10 +10,8 @@ WORST_GENRES_LIMIT = 5
 HIGHEST_EPISODES_SERIES_LIMIT = 1
 MULTILINGUAL_TITLES_LIMIT = 10
 TOP_COLOBORATIONS_LIMIT = 10
-
-
-def example_job(d: Dataset) -> None:
-    d.tratings.groupBy(c.average_rating).count().show()
+ORIGINAL_TITLE_TRUE = 1
+NONE_VALUE = r"\N"
 
 
 def most_popular_actors(d: Dataset) -> df:
@@ -157,4 +152,50 @@ def the_youngest_actors(d: Dataset) -> df:
 
     return young_actors
 
+
+def original_title_languages(d: Dataset) -> df:
+    """
+    Original titles languages:
+    Question: find number of original titles for each language
+    """
+
+    original_titles_df = (d.takas
+        .filter(f.col(c.is_original_title) == ORIGINAL_TITLE_TRUE)
+        .filter(f.col(c.language) != NONE_VALUE))
+
+    original_titles_df.show()
+
+    languages_count = (original_titles_df
+            .groupby(c.language)
+            .count()
+            .withColumnRenamed("count", c.titles_count)
+            .sort(f.desc(c.titles_count)))
+
+    return languages_count
+
+
+def genres_avg_rating(d: Dataset) -> df:
+    """
+    Genres statistics:
+    Question: display average rating by genre along with average value for all movies
+    """
+
+    all_rows = Window.partitionBy()
+    genre_partition = Window.partitionBy(c.genre)
+
+    basics_ratings_df = d.tbasics.join(d.tratings, c.tconst)
+    basics_ratings_df = basics_ratings_df.withColumn(c.titles_avg_rating, f.avg(c.average_rating).over(all_rows))
+    basics_ratings_df = (basics_ratings_df.select(
+        c.tconst,
+        c.primary_title,
+        f.explode(c.genres).alias(c.genre),
+        c.average_rating,
+        c.titles_avg_rating))
+
+    basics_ratings_df = (basics_ratings_df
+                         .withColumn(c.genre_avg_rating, f.avg(c.average_rating).over(genre_partition)))
+
+    basics_ratings_df = basics_ratings_df.orderBy(c.average_rating, ascending=False)
+
+    return basics_ratings_df
 

@@ -23,6 +23,7 @@ types = "types"
 attributes = "attributes"
 is_original_title = "is_original_title"
 language_count = "language_count"
+titles_count = "titles_count"
 
 # Titles id column
 
@@ -39,6 +40,8 @@ end_year = "end_year"
 runtime_minutes = "runtime_minutes"
 genres = "genres"
 genre = "genre"
+titles_avg_rating = "titles_avg_rating"
+genre_avg_rating = "genre_avg_rating"
 
 # Titles crew dataframe columns
 
