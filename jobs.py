@@ -12,6 +12,7 @@ TOP_COLOBORATIONS_LIMIT = 10
 
 POPULAR_DIRECTOR_MIN_VOTES = 50000
 ACTIVE_DIRECTOR_MIN_TITLE_COUNT = 5
+ACTIVE_LANGUAGE_MIN_TITLE_COUNT = 10000
 
 
 def example_job(d: Dataset) -> None:
@@ -124,7 +125,9 @@ def top_collaborations(d: Dataset) -> df:
     crew_ratings_joined = filter_non_null_writers.join(d.tratings, c.tconst)
 
     collaboration_names_df = (
-        crew_ratings_joined.join(d.nbasics, f.col(c.director) == f.col(c.nconst), "left")
+        crew_ratings_joined.join(
+            d.nbasics, f.col(c.director) == f.col(c.nconst), "left"
+        )
         .withColumnRenamed(c.primary_name, c.director_name)
         .drop(c.nconst)
         .join(d.nbasics, f.col(c.writer) == f.col(c.nconst), "left")
@@ -136,7 +139,9 @@ def top_collaborations(d: Dataset) -> df:
         c.director_name, c.writer_name, c.tconst, c.director, c.writer
     ).agg(f.avg(c.average_rating).alias(c.average_rating))
 
-    return collaboration_ratings.orderBy(f.col(c.average_rating).desc()).limit(TOP_COLOBORATIONS_LIMIT)
+    return collaboration_ratings.orderBy(f.col(c.average_rating).desc()).limit(
+        TOP_COLOBORATIONS_LIMIT
+    )
 
 
 def the_youngest_actors(d: Dataset) -> df:
@@ -146,7 +151,9 @@ def the_youngest_actors(d: Dataset) -> df:
     """
 
     professions_exploded = d.nbasics.select(
-        c.birth_year, c.primary_name, f.explode(c.primary_profession).alias(c.profession)
+        c.birth_year,
+        c.primary_name,
+        f.explode(c.primary_profession).alias(c.profession),
     )
     young_actors = (
         professions_exploded.filter(f.col(c.profession) == "actor")
@@ -163,23 +170,41 @@ def best_popular_directors(d: Dataset) -> df:
     Question: Who are the best active popular directors?
     """
 
-    title_ratings, title_crew, name_basics = d.tratings, d.tcrew, d.nbasics
-    joined_df = title_crew.select(
-        "tconst", f.explode("directors").alias("director")
-    ).join(title_ratings, "tconst")
-    name_basics_df = name_basics.select("nconst", "primary_name")
-    directors = joined_df.join(name_basics_df, f.col("director") == f.col("nconst"), "left")
+    joined_df = d.tcrew.select(c.tconst, f.explode(c.directors).alias("director")).join(
+        d.tratings, c.tconst
+    )
+    name_basics_df = d.nbasics.select(c.nconst, c.primary_name)
+    directors = joined_df.join(
+        name_basics_df, f.col("director") == f.col(c.nconst), "left"
+    )
     popular_directors = (
-        directors.select("average_rating", "num_votes", "primary_name")
-        .groupBy("primary_name")
+        directors.select(c.average_rating, c.num_votes, c.primary_name)
+        .groupBy(c.primary_name)
         .agg(
-            f.avg("average_rating").alias("average_rating"),
-            f.max("num_votes").alias("max_votes"),
-            f.count("*").alias("title_count"),
+            f.avg(c.average_rating).alias(c.average_rating),
+            f.max(c.num_votes).alias("max_votes"),
+            f.count("*").alias("titles_count"),
         )
         .filter(f.col("max_votes") > POPULAR_DIRECTOR_MIN_VOTES)
-        .filter(f.col("title_count") > ACTIVE_DIRECTOR_MIN_TITLE_COUNT)
-        .orderBy("average_rating", ascending=False)
+        .filter(f.col("titles_count") > ACTIVE_DIRECTOR_MIN_TITLE_COUNT)
+        .orderBy(c.average_rating, ascending=False)
     )
 
     return popular_directors
+
+
+def best_rated_languages(d: Dataset) -> df:
+    """
+    Best rated languages
+    Question: In which languages were the best movies filmed on average?
+    """
+
+    return (
+        d.takas.select(c.title_id, c.language)
+        .filter(f.col(c.language) != r"\N")
+        .join(d.tratings.select(c.tconst, c.average_rating), f.col(c.title_id) == f.col(c.tconst))
+        .groupBy(c.language)
+        .agg(f.avg(c.average_rating).alias(c.average_rating), f.count("*").alias("titles_count"))
+        .filter(f.col("titles_count") > ACTIVE_LANGUAGE_MIN_TITLE_COUNT)
+        .orderBy(c.average_rating, ascending=False)
+    )
