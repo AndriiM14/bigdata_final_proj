@@ -11,6 +11,9 @@ HIGHEST_EPISODES_SERIES_LIMIT = 1
 MULTILINGUAL_TITLES_LIMIT = 10
 TOP_COLOBORATIONS_LIMIT = 10
 ORIGINAL_TITLE_TRUE = 1
+IS_ADULT_TRUE = 1
+ADULT_MIN_YEAR = 2000
+ADULT_MAX_YEAR = 2023
 NONE_VALUE = r"\N"
 
 
@@ -198,4 +201,20 @@ def genres_avg_rating(d: Dataset) -> df:
     basics_ratings_df = basics_ratings_df.orderBy(c.average_rating, ascending=False)
 
     return basics_ratings_df
+
+
+def adult_movies_stats(d: Dataset) -> df:
+    """
+    Adult movies:
+    Question: find the number of adult movies for each year from 2000 to 2023 and the average rating for adult movies per year.
+    """
+
+    basics_rartings_df = d.tbasics.join(d.tratings, c.tconst)
+    adult_titles_df = basics_rartings_df.filter(f.col(c.is_adult) == IS_ADULT_TRUE)
+    adult_titles_df = adult_titles_df.filter((f.col(c.start_year) >= ADULT_MIN_YEAR) & (f.col(c.start_year) <= ADULT_MAX_YEAR))
+
+    return (adult_titles_df
+                .groupby(c.start_year)
+                .agg(f.count(c.tconst).alias(c.year_count), f.mean(c.average_rating).alias(c.year_avg_rating))
+                .orderBy(c.start_year, ascending=False))
 

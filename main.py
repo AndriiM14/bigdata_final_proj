@@ -25,9 +25,13 @@ def main():
     #original_titles_languages_df.show()
     #save_csv(original_titles_languages_df, f"{OUTPUT_PATH}/original_titles_languages")
 
-    genres_avg_rating = j.genres_avg_rating(dataset)
-    genres_avg_rating.show()
-    save_csv(genres_avg_rating, f"{OUTPUT_PATH}/genres_avg_rating")
+    #genres_avg_rating = j.genres_avg_rating(dataset)
+    #genres_avg_rating.show()
+    #save_csv(genres_avg_rating, f"{OUTPUT_PATH}/genres_avg_rating")
+
+    adult_movies_per_year = j.adult_movies_stats(dataset)
+    adult_movies_per_year.show()
+    save_csv(adult_movies_per_year, f"{OUTPUT_PATH}/adult_movies_stats")
 
     input("Press any button to end the program")
 
