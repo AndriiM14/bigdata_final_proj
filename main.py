@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 from pyspark.sql import SparkSession
+
+import jobs as j
 from dataset import load_dataset, preprocess
 from settings import DATA_PATH, OUTPUT_PATH
-import jobs as j
 
 
 def main():
