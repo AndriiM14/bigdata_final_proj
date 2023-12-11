@@ -9,5 +9,5 @@ def camel_to_snake(string: str) -> str:
 
 
 def save_csv(dataframe: df, path: str) -> None:
-    dataframe.write.csv(path)
+    dataframe.write.csv(path, mode="overwrite")
 

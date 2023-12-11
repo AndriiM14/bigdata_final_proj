@@ -1,22 +1,28 @@
+from dataset import Dataset
+from pyspark.sql import DataFrame as df
+from pyspark.sql.window import Window
+from pyspark.sql.types import IntegerType
+import columns as c
 import pyspark.sql.functions as f
 from pyspark.sql import DataFrame as df
 
-import columns as c
-from dataset import Dataset
 
 POPULAR_ACTORS_LIMIT = 10
 WORST_GENRES_LIMIT = 5
 HIGHEST_EPISODES_SERIES_LIMIT = 1
 MULTILINGUAL_TITLES_LIMIT = 10
+TOP_COLOBORATIONS_LIMIT = 10
+ORIGINAL_TITLE_TRUE = 1
+IS_ADULT_TRUE = 1
+ADULT_MIN_YEAR = 2000
+ADULT_MAX_YEAR = 2023
+BUSY_ACTORS_LIMIT = 20
+LONGEST_TV_LIMIT = 20
+NONE_VALUE = r"\N"
 TOP_COLLABORATIONS_LIMIT = 10
-
 POPULAR_DIRECTOR_MIN_VOTES = 50000
 ACTIVE_DIRECTOR_MIN_TITLE_COUNT = 5
 ACTIVE_LANGUAGE_MIN_TITLE_COUNT = 10000
-
-
-def example_job(d: Dataset) -> None:
-    d.tratings.groupBy(c.average_rating).count().show()
 
 
 def most_popular_actors(d: Dataset) -> df:
@@ -148,6 +154,146 @@ def the_youngest_actors(d: Dataset) -> df:
     )
 
     return young_actors
+
+
+def original_title_languages(d: Dataset) -> df:
+    """
+    Original titles languages:
+    Question: find number of original titles for each language
+    """
+
+    original_titles_df = (d.takas
+        .filter(f.col(c.is_original_title) == ORIGINAL_TITLE_TRUE)
+        .filter(f.col(c.language) != NONE_VALUE))
+
+    original_titles_df.show()
+
+    languages_count = (original_titles_df
+            .groupby(c.language)
+            .count()
+            .withColumnRenamed("count", c.titles_count)
+            .sort(f.desc(c.titles_count)))
+
+    return languages_count
+
+
+def genres_avg_rating(d: Dataset) -> df:
+    """
+    Genres statistics:
+    Question: display average rating by genre along with average value for all movies
+    """
+
+    all_rows = Window.partitionBy()
+    genre_partition = Window.partitionBy(c.genre)
+
+    basics_ratings_df = d.tbasics.join(d.tratings, c.tconst)
+    basics_ratings_df = basics_ratings_df.withColumn(c.titles_avg_rating, f.avg(c.average_rating).over(all_rows))
+    basics_ratings_df = (basics_ratings_df.select(
+        c.tconst,
+        c.primary_title,
+        f.explode(c.genres).alias(c.genre),
+        c.average_rating,
+        c.titles_avg_rating))
+
+    basics_ratings_df = (basics_ratings_df
+                         .withColumn(c.genre_avg_rating, f.avg(c.average_rating).over(genre_partition)))
+
+    basics_ratings_df = basics_ratings_df.orderBy(c.average_rating, ascending=False)
+
+    return basics_ratings_df
+
+
+def adult_movies_stats(d: Dataset) -> df:
+    """
+    Adult movies:
+    Question: find the number of adult movies for each year from 2000 to 2023 and the average rating for adult movies per year.
+    """
+
+    basics_rartings_df = d.tbasics.join(d.tratings, c.tconst)
+    adult_titles_df = basics_rartings_df.filter(f.col(c.is_adult) == IS_ADULT_TRUE)
+    adult_titles_df = adult_titles_df.filter((f.col(c.start_year) >= ADULT_MIN_YEAR) & (f.col(c.start_year) <= ADULT_MAX_YEAR))
+
+    return (adult_titles_df
+                .groupby(c.start_year)
+                .agg(f.count(c.tconst).alias(c.year_count), f.mean(c.average_rating).alias(c.year_avg_rating))
+                .orderBy(c.start_year, ascending=False))
+
+
+def directors_genres(d: Dataset) -> df:
+    """
+    Directors and genres:
+    Question: find the most successful genre for a director.
+    """
+
+    selection = Window.partitionBy(c.director, c.genre)
+
+    basics_ratings_df = d.tbasics.join(d.tratings, c.tconst)
+    directors_titles = basics_ratings_df.join(d.tcrew, c.tconst)
+    directors_titles = (directors_titles.select(
+        f.explode(c.directors).alias(c.director),
+        c.average_rating,
+        c.genres
+    ))
+
+
+    directors_titles = (directors_titles.select(
+        c.director,
+        f.explode(c.genres).alias(c.genre),
+        c.average_rating
+    ))
+
+    directors_titles = (directors_titles
+                        .withColumn(c.genre_avg_rating, f.avg(c.average_rating).over(selection)))
+
+    directors_titles = directors_titles.filter(f.col(c.director) != NONE_VALUE)
+
+    directors_max_genres = (directors_titles
+                            .groupby(c.director)
+                            .agg(f.max(c.average_rating).alias(c.genre_max_rating))
+                            .withColumnRenamed(c.director, c.nconst))
+
+    directors_max_genres = (directors_max_genres
+            .join(
+                directors_titles,
+                (directors_max_genres[c.nconst] == directors_titles[c.director]) & (directors_max_genres[c.genre_max_rating] == directors_titles[c.genre_avg_rating])))
+    directors_max_genres = (directors_max_genres
+                            .join(d.nbasics, c.nconst)
+                            .select(c.director, c.primary_name, c.genre, c.genre_max_rating))
+
+    return directors_max_genres
+
+
+def busy_actors(d: Dataset) -> df:
+    """
+    Bussy actors:
+    Question: Find top 20 actors that played in the biggest amount of movies in the dataset
+    """
+
+
+    actors_df = (d.nbasics
+        .select(
+            c.primary_name, f.explode(c.primary_profession).alias(c.profession), c.nconst)
+        .filter(f.col(c.profession) == "actor"))
+    actors_df = actors_df.join(d.tprincipals, c.nconst)
+
+    return (actors_df
+                .groupby(c.primary_name).count().withColumnRenamed("count", c.titles_count)
+                .orderBy(c.titles_count, ascending=False)
+                .limit(BUSY_ACTORS_LIMIT))
+
+
+def longest_tv_series(d: Dataset) -> df:
+    """
+    Longest TV series:
+    Question: find top 20 longest running tv series.
+    """
+
+    return (d.tbasics
+            .filter(f.col(c.end_year) != NONE_VALUE)
+            .withColumn(c.end_year, f.col(c.end_year).cast(IntegerType()))
+            .withColumn(c.years_running, f.col(c.end_year) - f.col(c.start_year))
+            .orderBy(c.years_running, ascending=False)
+            .limit(LONGEST_TV_LIMIT))
 
 
 def best_popular_directors(d: Dataset) -> df:

@@ -29,7 +29,7 @@ title_akas_schema = StructType(
         StructField("language", StringType(), True),
         StructField("types", StringType(), True),
         StructField("attributes", StringType(), True),
-        StructField("isOriginalTitle", BooleanType(), True),
+        StructField("isOriginalTitle", IntegerType(), True),
     ]
 )
 
@@ -39,9 +39,9 @@ title_basics_schema = StructType(
         StructField("titleType", StringType(), True),
         StructField("primaryTitle", StringType(), True),
         StructField("originalTitle", StringType(), True),
-        StructField("isAdult", BooleanType(), True),
+        StructField("isAdult", IntegerType(), True),
         StructField("startYear", IntegerType(), True),
-        StructField("endYear", IntegerType(), True),
+        StructField("endYear", StringType(), True),
         StructField("runtimeMinutes", IntegerType(), True),
         StructField("genres", StringType(), True),
     ]
