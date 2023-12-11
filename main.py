@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 from pyspark.sql import SparkSession
+
+import jobs as j
 from dataset import load_dataset, preprocess
 from settings import DATA_PATH, OUTPUT_PATH
 from utils import save_csv
-import jobs as j
 
 
 def main():
@@ -13,12 +14,20 @@ def main():
     dataset = preprocess(dataset)
 
     # Bogdana's jobs
-    #j.most_popular_actors(dataset).show()
-    #j.worst_ranked_movie_genres(dataset).show()
-    #j.episodic_tv_series_statictics(dataset).show()
-    #j.multilingual_titles(dataset).show()
-    #j.top_collaborations(dataset).show()
-    #j.the_youngest_actors(dataset).show()
+    # j.most_popular_actors(dataset).show()
+    # j.worst_ranked_movie_genres(dataset).show()
+    # j.episodic_tv_series_statictics(dataset).show()
+    # j.multilingual_titles(dataset).show()
+    # j.top_collaborations(dataset).show()
+    # j.the_youngest_actors(dataset).show()
+
+    # Andrii Shchur jobs
+    # j.best_popular_directors(dataset).show()
+    # j.best_rated_languages(dataset).show()
+    # j.versatile_directors(dataset).show()
+    # j.best_decades(dataset).show()
+    # j.directors_with_long_movies(dataset).show()
+    # j.best_genres_per_decades(dataset).show()
 
     # Andrii's (Marusyk) jobs
     #original_titles_languages_df = j.original_title_languages(dataset)
@@ -46,7 +55,6 @@ def main():
     save_csv(longest_tv, f"{OUTPUT_PATH}/longest_tv")
 
     input("Press any button to end the program")
-
 
 
 if __name__ == "__main__":

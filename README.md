@@ -2,7 +2,7 @@
 
 ### Team:
  - Bogdana Gonserovska
- - Andrii Schur
+ - Andrii Shchur
  - Anna Horbova
  - Andrii Marusyk
 
