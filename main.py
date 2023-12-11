@@ -25,7 +25,8 @@ def main():
     # j.best_rated_languages(dataset).show()
     # j.versatile_directors(dataset).show()
     # j.best_decades(dataset).show()
-    j.directors_with_long_movies(dataset).show()
+    # j.directors_with_long_movies(dataset).show()
+    # j.best_genres_per_decades(dataset).show()
 
     input("Press any button to end the program")
 

@@ -261,3 +261,26 @@ def directors_with_long_movies(d: Dataset) -> df:
         .agg(f.avg(c.runtime_minutes).alias(_avg_minutes_col))
         .orderBy(_avg_minutes_col, ascending=False)
     )
+
+
+def best_genres_per_decades(d: Dataset) -> df:
+    """
+    The highest rated genres throughout the decades
+    Question: What genres were rated the highest in each decade?
+    """
+
+    _decade_col = "decade"
+    _avg_avg_rating_col = "avg_avg_rating"
+
+    return (
+        d.tbasics.select(c.tconst, c.start_year, f.explode(c.genres).alias(c.genre))
+        .filter(f.col(c.start_year).isNotNull() & (f.col(c.genre) != r"\N"))
+        .withColumn(_decade_col, f.expr(f"floor({c.start_year}/10)*10"))
+        .join(d.tratings.select(c.tconst, c.average_rating), c.tconst)
+        .groupBy(_decade_col, c.genre)
+        .agg(f.avg(c.average_rating).alias(_avg_avg_rating_col))
+        .orderBy(_avg_avg_rating_col, ascending=False)
+        .groupBy(_decade_col)
+        .agg(f.max(_avg_avg_rating_col).alias(_avg_avg_rating_col), f.first(c.genre).alias(c.genre))
+        .orderBy(_decade_col, ascending=False)
+    )
